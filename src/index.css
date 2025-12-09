@@ -30,6 +30,64 @@ body {
   min-height: 100vh;
 }
 
+/* Themed login background: layered gradient + subtle animated blobs */
+.login-background {
+  position: relative;
+  background: radial-gradient(1200px 600px at 10% 20%, rgba(99,102,241,0.12), transparent 15%),
+              radial-gradient(1000px 500px at 90% 80%, rgba(88,200,255,0.08), transparent 12%),
+              linear-gradient(180deg, #0f172a 0%, #071128 60%, #021021 100%);
+  color: #e6eef8;
+  overflow: hidden;
+}
+
+.login-background::before,
+.login-background::after {
+  content: "";
+  position: absolute;
+  inset: -20% -10%;
+  z-index: 0;
+  filter: blur(60px) saturate(120%);
+  opacity: 0.6;
+  transform: translateZ(0);
+}
+
+.login-background::before {
+  background: radial-gradient(circle at 15% 25%, rgba(124,58,237,0.45), transparent 20%),
+              radial-gradient(circle at 80% 70%, rgba(16,185,129,0.18), transparent 25%);
+  animation: blobMove 14s linear infinite alternate;
+}
+
+.login-background::after {
+  background: radial-gradient(circle at 70% 20%, rgba(59,130,246,0.28), transparent 18%),
+              radial-gradient(circle at 30% 80%, rgba(99,102,241,0.16), transparent 22%);
+  animation: blobMoveAlt 18s linear infinite alternate;
+  opacity: 0.45;
+}
+
+@keyframes blobMove {
+  0% { transform: translate3d(-2%,0,0) scale(1); }
+  50% { transform: translate3d(4%,3%,0) scale(1.05); }
+  100% { transform: translate3d(-2%,6%,0) scale(0.98); }
+}
+
+@keyframes blobMoveAlt {
+  0% { transform: translate3d(2%,0,0) scale(1); }
+  50% { transform: translate3d(-3%,-4%,0) scale(1.06); }
+  100% { transform: translate3d(6%,2%,0) scale(0.96); }
+}
+
+/* Ensure the Paper container sits above the animated background */
+.login-background .MuiPaper-root {
+  position: relative;
+  z-index: 2;
+  background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+  backdrop-filter: blur(6px) saturate(120%);
+}
+
+/* Small vignette for depth */
+
+
+
 h1 {
   font-size: 3.2em;
   line-height: 1.1;
