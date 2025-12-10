@@ -1,11 +1,9 @@
+// src/pages/Register.jsx
 import React, { useState } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
 import {
   Avatar,
   Box,
   Button,
-  Checkbox,
   Container,
   Divider,
   FormControlLabel,
@@ -16,33 +14,38 @@ import {
   Paper,
   TextField,
   Typography,
+  Checkbox,
   useTheme
 } from '@mui/material';
-import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
+import HowToRegIcon from '@mui/icons-material/HowToReg';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
-import GoogleIcon from '@mui/icons-material/Google'; // if missing, install icons
+import GoogleIcon from '@mui/icons-material/Google';
 import FacebookIcon from '@mui/icons-material/Facebook';
-import { login } from '../services/auth';
+import { login } from '../services/auth'; // we will use register flow that returns fake token (we reuse stub)
+import { useNavigate } from 'react-router-dom';
 
-export default function Login() {
+export default function Register() {
   const theme = useTheme();
+  const navigate = useNavigate();
 
-  // form state
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [remember, setRemember] = useState(false);
+  const [acceptTerms, setAcceptTerms] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   const validate = () => {
+    if (!name) return 'Name is required';
     if (!email) return 'Email is required';
     const emailRe = /\S+@\S+\.\S+/;
     if (!emailRe.test(email)) return 'Enter a valid email';
     if (!password) return 'Password is required';
     if (password.length < 6) return 'Password must be at least 6 characters';
+    if (!acceptTerms) return 'You must accept the terms and conditions';
     return null;
   };
 
@@ -56,22 +59,20 @@ export default function Login() {
     }
     setLoading(true);
     try {
-      const res = await login({ email, password }); // still using stub
-      auth.login(res); // save token + user to context
-      navigate('/dashboard'); // we will create Dashboard later
-
-      // TODO: store token, navigate to dashboard
+      // For now we reuse the login stub as fake register — replace later with real register API.
+      const res = await new Promise((resolve) =>
+        setTimeout(() => resolve({ token: 'fake-jwt-token', user: { name, email } }), 700)
+      );
+      console.log('Register success', res);
+      // Optionally store token, then navigate to dashboard. For now, redirect to login.
+      navigate('/login');
     } catch (err) {
       console.error(err);
-      setError(err?.message || 'Login failed');
+      setError(err?.message || 'Registration failed');
     } finally {
       setLoading(false);
     }
   };
-
-  const handleTogglePassword = () => setShowPassword((s) => !s);
-  const auth = useAuth();
-  const navigate = useNavigate();
 
   return (
     <Box
@@ -91,11 +92,11 @@ export default function Login() {
             display: 'flex',
             borderRadius: 3,
             overflow: 'hidden',
-            minHeight: 480,
+            minHeight: 520,
             boxShadow: '0 10px 30px rgba(0,0,0,0.08)'
           }}
         >
-          {/* Left visual / branding panel (hidden on small screens) */}
+          {/* Left branding panel (hidden on xs) */}
           <Grid
             item
             xs={0}
@@ -114,19 +115,16 @@ export default function Login() {
             direction="column"
           >
             <Box sx={{ mb: 2 }}>
-              {/* Replace with your logo/img if you have */}
               <Typography variant="h4" sx={{ fontWeight: 700 }}>
                 Subscription Manager
               </Typography>
             </Box>
 
             <Typography variant="body1" sx={{ opacity: 0.9, maxWidth: 360, mb: 3 }}>
-              Keep track of all your recurring subscriptions in one beautiful dashboard.
-              Never miss a renewal again.
+              Create your account to manage subscriptions, track costs, and receive renewal reminders.
             </Typography>
 
             <Box sx={{ mt: 'auto' }}>
-              {/* simple illustrative block — swap for an SVG/image */}
               <Box
                 sx={{
                   width: '100%',
@@ -139,7 +137,7 @@ export default function Login() {
                   justifyContent: 'center'
                 }}
               >
-                <Typography variant="h6">Your subscriptions, organized</Typography>
+                <Typography variant="h6">Join and take control</Typography>
               </Box>
             </Box>
           </Grid>
@@ -149,19 +147,30 @@ export default function Login() {
             <Box sx={{ maxWidth: 420, mx: 'auto' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
                 <Avatar sx={{ bgcolor: theme.palette.primary.main }}>
-                  <LockOutlinedIcon />
+                  <HowToRegIcon />
                 </Avatar>
                 <Box>
                   <Typography variant="h5" sx={{ fontWeight: 700 }}>
-                    Welcome back
+                    Create account
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    Sign in to continue to your dashboard
+                    Start your free account and manage subscriptions easily
                   </Typography>
                 </Box>
               </Box>
 
               <Box component="form" onSubmit={handleSubmit} noValidate>
+                <TextField
+                  label="Full Name"
+                  variant="outlined"
+                  fullWidth
+                  margin="normal"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  autoComplete="name"
+                  disabled={loading}
+                />
+
                 <TextField
                   label="Email"
                   variant="outlined"
@@ -187,7 +196,7 @@ export default function Login() {
                       <InputAdornment position="end">
                         <IconButton
                           aria-label={showPassword ? 'Hide password' : 'Show password'}
-                          onClick={handleTogglePassword}
+                          onClick={() => setShowPassword((s) => !s)}
                           edge="end"
                           size="large"
                         >
@@ -198,21 +207,22 @@ export default function Login() {
                   }}
                 />
 
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 1 }}>
-                  <FormControlLabel
-                    control={
-                      <Checkbox
-                        checked={remember}
-                        onChange={(e) => setRemember(e.target.checked)}
-                        disabled={loading}
-                      />
-                    }
-                    label="Remember me"
-                  />
-                  <Link href="#" underline="hover" variant="body2">
-                    Forgot password?
-                  </Link>
-                </Box>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={acceptTerms}
+                      onChange={(e) => setAcceptTerms(e.target.checked)}
+                      disabled={loading}
+                    />
+                  }
+                  label={
+                    <Typography variant="body2">
+                      I agree to the <Link href="#">Terms of Service</Link> and{' '}
+                      <Link href="#">Privacy Policy</Link>.
+                    </Typography>
+                  }
+                  sx={{ mt: 1 }}
+                />
 
                 {error && (
                   <Typography color="error" sx={{ mt: 1 }}>
@@ -228,10 +238,10 @@ export default function Login() {
                   sx={{ mt: 3, mb: 1, py: 1.25 }}
                   disabled={loading}
                 >
-                  {loading ? 'Signing in...' : 'Sign in'}
+                  {loading ? 'Creating account...' : 'Create account'}
                 </Button>
 
-                <Divider sx={{ my: 2 }}>or continue with</Divider>
+                <Divider sx={{ my: 2 }}>or sign up with</Divider>
 
                 <Grid container spacing={2}>
                   <Grid item xs={12} sm={6}>
@@ -239,7 +249,7 @@ export default function Login() {
                       variant="outlined"
                       startIcon={<GoogleIcon />}
                       fullWidth
-                      onClick={() => console.log('Google sign-in (stub)')}
+                      onClick={() => console.log('Google sign-up (stub)')}
                       sx={{ textTransform: 'none' }}
                     >
                       Google
@@ -250,7 +260,7 @@ export default function Login() {
                       variant="outlined"
                       startIcon={<FacebookIcon />}
                       fullWidth
-                      onClick={() => console.log('Facebook sign-in (stub)')}
+                      onClick={() => console.log('Facebook sign-up (stub)')}
                       sx={{ textTransform: 'none' }}
                     >
                       Facebook
@@ -259,9 +269,9 @@ export default function Login() {
                 </Grid>
 
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 3 }}>
-                  Don’t have an account?{' '}
-                  <Link href="/register" underline="hover">
-                    Create account
+                  Already have an account?{' '}
+                  <Link href="/login" underline="hover">
+                    Sign in
                   </Link>
                 </Typography>
               </Box>
