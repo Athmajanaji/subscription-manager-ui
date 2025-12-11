@@ -20,17 +20,6 @@ export default function Dashboard() {
           </Typography>
         </div>
 
-        <div>
-          <Button
-            variant="outlined"
-            onClick={() => {
-              auth.logout();
-              navigate('/login');
-            }}
-          >
-            Logout
-          </Button>
-        </div>
       </Box>
 
       <Box sx={{ p: 3, borderRadius: 2, bgcolor: 'background.paper', boxShadow: 1 }}>
