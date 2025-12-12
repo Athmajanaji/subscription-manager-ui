@@ -1,5 +1,5 @@
 // src/pages/Subscriptions.jsx
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Box,
   Button,
@@ -12,52 +12,56 @@ import {
   TableHead,
   TableRow,
   Typography,
-  Chip
+  Chip,
+  CircularProgress,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Pagination
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
-
-// sample/mock data
-const MOCK = [
-  {
-    id: 1,
-    name: 'Netflix',
-    category: 'STREAMING',
-    amount: 499,
-    currency: 'INR',
-    billingPeriod: 'MONTHLY',
-    nextBillingDate: '2025-12-20',
-    autoRenew: true,
-    paymentMethod: 'CREDIT_CARD'
-  },
-  {
-    id: 2,
-    name: 'Spotify',
-    category: 'STREAMING',
-    amount: 119,
-    currency: 'INR',
-    billingPeriod: 'MONTHLY',
-    nextBillingDate: '2025-12-25',
-    autoRenew: true,
-    paymentMethod: 'UPI'
-  },
-  {
-    id: 3,
-    name: 'Dropbox',
-    category: 'CLOUD',
-    amount: 1200,
-    currency: 'INR',
-    billingPeriod: 'YEARLY',
-    nextBillingDate: '2026-01-10',
-    autoRenew: false,
-    paymentMethod: 'CREDIT_CARD'
-  }
-];
+import { getSubscriptions } from '../services/subscriptionService';
+import ProtectedRoute from '../components/ProtectedRoute';
 
 function formatAmount(amount, currency) {
   return `${amount} ${currency}`;
 }
 
 export default function Subscriptions() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [pageData, setPageData] = useState({
+    content: [],
+    totalElements: 0,
+    totalPages: 0,
+    number: 0,
+    size: 10
+  });
+
+  const [page, setPage] = useState(0); // 0-based for backend
+  const [size, setSize] = useState(10);
+  const [sort, setSort] = useState('id,asc');
+
+  const fetchData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await getSubscriptions(page, size, sort);
+      setPageData(data);
+    } catch (err) {
+      console.error(err);
+      setError(err?.response?.data?.message || err.message || 'Failed to fetch subscriptions');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, size, sort]);
+
   return (
     <Container maxWidth="lg" sx={{ mt: 6 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
@@ -70,9 +74,37 @@ export default function Subscriptions() {
           </Typography>
         </div>
 
-        <Button variant="contained" startIcon={<AddIcon />}>
-          Add subscription
-        </Button>
+        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+          <FormControl size="small" sx={{ minWidth: 140 }}>
+            <InputLabel id="sort-label">Sort</InputLabel>
+            <Select
+              labelId="sort-label"
+              value={sort}
+              label="Sort"
+              onChange={(e) => { setSort(e.target.value); setPage(0); }}
+            >
+              <MenuItem value="id,asc">Newest</MenuItem>
+              <MenuItem value="amount,desc">Amount (high → low)</MenuItem>
+              <MenuItem value="nextBillingDate,asc">Next billing (soonest)</MenuItem>
+            </Select>
+          </FormControl>
+
+          <FormControl size="small" sx={{ minWidth: 120 }}>
+            <InputLabel id="size-label">Per page</InputLabel>
+            <Select
+              labelId="size-label"
+              value={size}
+              label="Per page"
+              onChange={(e) => { setSize(Number(e.target.value)); setPage(0); }}
+            >
+              <MenuItem value={5}>5</MenuItem>
+              <MenuItem value={10}>10</MenuItem>
+              <MenuItem value={20}>20</MenuItem>
+            </Select>
+          </FormControl>
+
+          <Button variant="contained" startIcon={<AddIcon />}>Add subscription</Button>
+        </Box>
       </Box>
 
       <Paper elevation={1}>
@@ -92,41 +124,65 @@ export default function Subscriptions() {
             </TableHead>
 
             <TableBody>
-              {MOCK.map((s) => (
-                <TableRow key={s.id}>
-                  <TableCell>
-                    <Typography sx={{ fontWeight: 600 }}>{s.name}</Typography>
-                  </TableCell>
-
-                  <TableCell>
-                    <Chip label={s.category} size="small" />
-                  </TableCell>
-
-                  <TableCell>{formatAmount(s.amount, s.currency)}</TableCell>
-
-                  <TableCell>{s.billingPeriod}</TableCell>
-
-                  <TableCell>{s.nextBillingDate}</TableCell>
-
-                  <TableCell>{s.autoRenew ? 'Yes' : 'No'}</TableCell>
-
-                  <TableCell>{s.paymentMethod}</TableCell>
-
-                  <TableCell align="right">
-                    <Button size="small" sx={{ mr: 1 }}>
-                      Edit
-                    </Button>
-                    <Button size="small" color="error">
-                      Delete
-                    </Button>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={8} align="center">
+                    <CircularProgress />
                   </TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
+              ) : error ? (
+                <TableRow>
+                  <TableCell colSpan={8} align="center">
+                    <Typography color="error">{error}</Typography>
+                  </TableCell>
+                </TableRow>
+              ) : pageData.content.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={8} align="center">
+                    <Typography color="text.secondary">No subscriptions found.</Typography>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                pageData.content.map((s) => (
+                  <TableRow key={s.id}>
+                    <TableCell>
+                      <Typography sx={{ fontWeight: 600 }}>{s.name}</Typography>
+                    </TableCell>
 
+                    <TableCell>
+                      <Chip label={s.category} size="small" />
+                    </TableCell>
+
+                    <TableCell>{formatAmount(s.amount, s.currency)}</TableCell>
+
+                    <TableCell>{s.billingPeriod}</TableCell>
+
+                    <TableCell>{s.nextBillingDate}</TableCell>
+
+                    <TableCell>{s.autoRenew ? 'Yes' : 'No'}</TableCell>
+
+                    <TableCell>{s.paymentMethod}</TableCell>
+
+                    <TableCell align="right">
+                      <Button size="small" sx={{ mr: 1 }}>Edit</Button>
+                      <Button size="small" color="error">Delete</Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
           </Table>
         </TableContainer>
       </Paper>
+
+      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+        <Pagination
+          count={pageData.totalPages || 1}
+          page={page + 1}
+          onChange={(e, value) => setPage(value - 1)}
+          color="primary"
+        />
+      </Box>
     </Container>
   );
 }
