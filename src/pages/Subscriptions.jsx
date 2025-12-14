@@ -51,6 +51,7 @@ export default function Subscriptions() {
   const [sortDirection, setSortDirection] = useState('asc'); // 'asc' or 'desc'
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
+  const searchDebounceRef = React.useRef();
   const [openDelete, setOpenDelete] = useState(false);
   const [selectedSub, setSelectedSub] = useState(null);
 
@@ -83,6 +84,20 @@ export default function Subscriptions() {
     fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search]);
+
+  // debounce searchInput -> search
+  useEffect(() => {
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    searchDebounceRef.current = setTimeout(() => {
+      const trimmed = (searchInput || '').trim();
+      setSearch(trimmed);
+      setPage(0);
+    }, 450);
+    return () => {
+      if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchInput]);
 
   const handleSort = (field) => {
     if (sortField === field) {
@@ -123,15 +138,7 @@ export default function Subscriptions() {
             size="small"
             placeholder="Search subscriptions"
             value={searchInput}
-            onChange={(e) => {
-              setSearchInput(e.target.value);
-              // debounce user input before setting the real search term
-              if (window.__subscriptionSearchDebounce) clearTimeout(window.__subscriptionSearchDebounce);
-              window.__subscriptionSearchDebounce = setTimeout(() => {
-                setSearch(e.target.value);
-                setPage(0);
-              }, 450);
-            }}
+            onChange={(e) => setSearchInput(e.target.value)}
             sx={{ minWidth: 260 }}
           />
           <FormControl size="small" sx={{ minWidth: 120 }}>
