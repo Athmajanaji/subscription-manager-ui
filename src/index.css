@@ -1,5 +1,5 @@
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
@@ -11,6 +11,27 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* premium typography */
+h1, h2, h3, h4 {
+  font-family: 'Playfair Display', serif;
+}
+
+body {
+  font-size: 16px;
+  color: rgba(33, 53, 71, 0.95);
+  background-color: #f6f8fb;
+}
+
+.card-like {
+  background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(16,24,40,0.06);
+}
+
+.muted {
+  color: rgba(33,53,71,0.6);
 }
 
 a {

@@ -1,5 +1,6 @@
 // src/pages/Subscriptions.jsx
 import React, { useEffect, useState } from 'react';
+import { useNavigate, Link as RouterLink, useLocation } from 'react-router-dom';
 import {
   Box,
   Button,
@@ -54,10 +55,30 @@ export default function Subscriptions() {
   const searchDebounceRef = React.useRef();
   const [openDelete, setOpenDelete] = useState(false);
   const [selectedSub, setSelectedSub] = useState(null);
+  const [billingFilter, setBillingFilter] = useState('ALL'); // ALL | OVERDUE | SOON
 
   // derive the string used by backend
   const sort = `${sortField},${sortDirection}`;
   const [editingSub, setEditingSub] = useState(null);
+
+  // helper to compute days left from nextBillingDate (returns integer days, or Infinity if not set)
+  const computeDaysLeft = (dateStr) => {
+    if (!dateStr) return Infinity;
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const nb = new Date(dateStr);
+    if (isNaN(nb.getTime())) return Infinity;
+    const billing = new Date(nb.getFullYear(), nb.getMonth(), nb.getDate());
+    return Math.floor((billing - today) / (24 * 60 * 60 * 1000));
+  };
+
+  // derive filtered content according to billingFilter
+  const filteredContent = (pageData.content || []).filter((s) => {
+    const daysLeft = computeDaysLeft(s.nextBillingDate);
+    if (billingFilter === 'OVERDUE') return daysLeft < 0;
+    if (billingFilter === 'SOON') return daysLeft >= 0 && daysLeft <= 7;
+    return true;
+  });
 
 
   const fetchData = async () => {
@@ -113,6 +134,8 @@ export default function Subscriptions() {
   };
 
   const [openAdd, setOpenAdd] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const refreshAfterCreate = () => {
     setPage(0);
@@ -152,6 +175,20 @@ export default function Subscriptions() {
               <MenuItem value={5}>5</MenuItem>
               <MenuItem value={10}>10</MenuItem>
               <MenuItem value={20}>20</MenuItem>
+            </Select>
+          </FormControl>
+
+          <FormControl size="small" sx={{ minWidth: 160 }}>
+            <InputLabel id="billing-filter-label">Show</InputLabel>
+            <Select
+              labelId="billing-filter-label"
+              value={billingFilter}
+              label="Show"
+              onChange={(e) => setBillingFilter(e.target.value)}
+            >
+              <MenuItem value="ALL">All</MenuItem>
+              <MenuItem value="SOON">Renewing soon (≤ 7 days)</MenuItem>
+              <MenuItem value="OVERDUE">Overdue</MenuItem>
             </Select>
           </FormControl>
 
@@ -237,62 +274,87 @@ export default function Subscriptions() {
                   </TableCell>
                 </TableRow>
               ) : (
-                pageData.content.map((s) => (
-                  <TableRow
-                    key={s.id}
-                    sx={{
-                      transition: 'transform 220ms cubic-bezier(.2,.8,.2,1), box-shadow 220ms ease, background-color 220ms ease',
-                      '&:hover': {
-                        transform: 'translateY(-4px)',
-                        boxShadow: '0 6px 18px rgba(2,6,23,0.12)',
-                        backgroundColor: (theme) => theme.palette.mode === 'light' ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)'
-                      }
-                    }}
-                  >
-                    <TableCell>
-                      <Typography sx={{ fontWeight: 600 }}>{s.name}</Typography>
-                    </TableCell>
+                filteredContent.map((s) => {
+                  const daysLeft = computeDaysLeft(s.nextBillingDate);
+                  return (
+                    <TableRow
+                      key={s.id}
+                      sx={{
+                        transition: 'transform 220ms cubic-bezier(.2,.8,.2,1), box-shadow 220ms ease, background-color 220ms ease',
+                        backgroundColor: (theme) => {
+                          if (daysLeft < 0) return theme.palette.error.light;
+                          if (daysLeft <= 7) return theme.palette.warning.light;
+                          return 'transparent';
+                        },
+                        color: (theme) => {
+                          if (daysLeft < 0) return theme.palette.getContrastText(theme.palette.error.light);
+                          if (daysLeft <= 7) return theme.palette.getContrastText(theme.palette.warning.light || theme.palette.warning.main);
+                          return undefined;
+                        },
+                        '&:hover': {
+                          transform: 'translateY(-4px)',
+                          boxShadow: '0 6px 18px rgba(2,6,23,0.12)',
+                          // only apply subtle hover tint for normal rows (don't override warning/error highlights)
+                          ...(daysLeft > 7
+                            ? { backgroundColor: (theme) => (theme.palette.mode === 'light' ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.02)') }
+                            : {})
+                        }
+                      }}
+                    onClick={() => navigate(`/subscriptions/${s.id}`)}
+                    >
+                      <TableCell>
+                        <Typography sx={{ fontWeight: 600 }}>{s.name}</Typography>
+                      </TableCell>
 
-                    <TableCell>
-                      <Chip label={s.category} size="small" />
-                    </TableCell>
+                      <TableCell>
+                        <Chip label={s.category} size="small" />
+                      </TableCell>
 
-                    <TableCell>{formatAmount(s.amount, s.currency)}</TableCell>
+                      <TableCell>{formatAmount(s.amount, s.currency)}</TableCell>
 
-                    <TableCell>{s.billingPeriod}</TableCell>
+                      <TableCell>{s.billingPeriod}</TableCell>
 
-                    <TableCell>{s.nextBillingDate}</TableCell>
+                      <TableCell>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Typography component="span">{s.nextBillingDate}</Typography>
+                          {(() => {
+                            const daysLeft = computeDaysLeft(s.nextBillingDate);
+                            if (daysLeft < 0) {
+                              return <Chip label="Overdue" size="small" sx={{ bgcolor: (t) => t.palette.error.light, color: (t) => t.palette.getContrastText(t.palette.error.light) }} />;
+                            }
+                            if (daysLeft <= 7) {
+                              return <Chip label="Renewing soon" size="small" sx={{ bgcolor: (t) => t.palette.warning.light, color: (t) => t.palette.getContrastText(t.palette.warning.light || t.palette.warning.main) }} />;
+                            }
+                            return null;
+                          })()}
+                        </Box>
+                      </TableCell>
 
-                    <TableCell>{s.autoRenew ? 'Yes' : 'No'}</TableCell>
+                      <TableCell>{s.autoRenew ? 'Yes' : 'No'}</TableCell>
 
-                    <TableCell>{s.paymentMethod}</TableCell>
+                      <TableCell>{s.paymentMethod}</TableCell>
 
-                    <TableCell align="right">
-                      <Button
-                        size="small"
-                        sx={{ mr: 1 }}
-                        onClick={() => {
-                          setEditingSub(s);
-                          setOpenAdd(true);
-                        }}
-                      >
-                        Edit
-                      </Button>
+                      <TableCell align="right">
+                        <Button
+                          size="small"
+                          sx={{ mr: 1 }}
+                          onClick={(e) => { e.stopPropagation(); setEditingSub(s); setOpenAdd(true); }}
+                        >
+                          Edit
+                        </Button>
 
-                      <Button
-                        size="small"
-                        color="error"
-                        onClick={() => {
-                          setSelectedSub(s);
-                          setOpenDelete(true);
-                        }}
-                      >
-                        Delete
-                      </Button>
+                        <Button
+                          size="small"
+                          color="error"
+                          onClick={(e) => { e.stopPropagation(); setSelectedSub(s); setOpenDelete(true); }}
+                        >
+                          Delete
+                        </Button>
 
-                    </TableCell>
-                  </TableRow>
-                ))
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>

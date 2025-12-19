@@ -29,3 +29,8 @@ export async function updateSubscription(id, payload) {
   const resp = await api.put(`/subscriptions/${id}`, payload);
   return resp.data;
 }
+
+export async function getSubscriptionById(id) {
+  const resp = await api.get(`/subscriptions/${id}`);
+  return resp.data;
+}

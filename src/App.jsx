@@ -7,6 +7,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Subscriptions from './pages/Subscriptions';
+import SubscriptionDetails from './pages/SubscriptionDetails';
 import ProtectedRoute from './components/ProtectedRoute';
 import Layout from './components/Layout';
 import PageTransition from './components/PageTransition';
@@ -59,6 +60,19 @@ function AnimatedRoutes() {
               <PageTransition>
                 <Layout>
                   <Subscriptions />
+                </Layout>
+              </PageTransition>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/subscriptions/:id"
+          element={
+            <ProtectedRoute>
+              <PageTransition>
+                <Layout>
+                  <SubscriptionDetails />
                 </Layout>
               </PageTransition>
             </ProtectedRoute>
