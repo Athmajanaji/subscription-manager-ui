@@ -59,38 +59,37 @@ export default function SubscriptionDetails() {
 
   return (
     <Container maxWidth="lg" sx={{ mt: 6 }}>
-  <Paper className="card-like" sx={{ p: 5 }} elevation={3}>
-        <Grid container spacing={4} alignItems="center">
+      <Paper className="card-like details-card" sx={{ p: 5 }} elevation={3}>
+        <Grid container spacing={4} alignItems="flex-start">
           <Grid item xs={12} md={4}>
-            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+            <Box className="details-left" sx={{ display: 'flex', flexDirection: 'column', alignItems: { xs: 'center', md: 'flex-start' }, gap: 2 }}>
+              <div className="details-avatar-wrap">
                 <Avatar
                   src={iconUrl || undefined}
                   alt={sub.name}
-                  sx={{
-                    width: 120,
-                    height: 120,
-                    bgcolor: iconUrl ? 'transparent' : 'linear-gradient(135deg,#8b5cf6,#06b6d4)',
-                    fontSize: 32
-                  }}
+                  className="details-avatar"
+                  sx={{ width: 140, height: 140, fontSize: 36 }}
                 >
                   {!iconUrl && initials}
                 </Avatar>
-              <Typography variant="h4" sx={{ fontWeight: 700, textAlign: 'center', fontFamily: 'Playfair Display, serif' }}>{sub.name}</Typography>
-              <Stack direction="row" spacing={1} sx={{ mt: 1 }} alignItems="center">
-                <Chip label={sub.category || '—'} size="small" variant="outlined" />
-              </Stack>
-              <Box sx={{ mt: 2 }}>
-                <Button sx={{ mr: 1 }} onClick={() => navigate('/subscriptions')}>Back</Button>
-                <Button variant="contained" onClick={() => navigate('/subscriptions', { state: { editId: sub.id } })}>Edit</Button>
+              </div>
+              <Box sx={{ textAlign: { xs: 'center', md: 'left' } }}>
+                <Typography variant="h3" sx={{ fontWeight: 700, fontFamily: 'Playfair Display, serif', letterSpacing: '-0.5px' }}>{sub.name}</Typography>
+                <Typography className="muted" sx={{ mt: 0.5 }}>{sub.category || '—'}</Typography>
               </Box>
+
+              <Stack direction="row" spacing={1} sx={{ mt: 2 }}>
+                <Button variant="outlined" onClick={() => navigate('/subscriptions')}>Back</Button>
+                <Button variant="contained" onClick={() => navigate('/subscriptions', { state: { editId: sub.id } })}>Edit</Button>
+              </Stack>
             </Box>
           </Grid>
 
           <Grid item xs={12} md={8}>
-            <Grid container spacing={4}>
+            <Grid container spacing={3} className="details-meta">
               <Grid item xs={12} sm={6}>
                 <Typography variant="subtitle2" className="muted">Amount</Typography>
-                <Typography sx={{ fontWeight: 700, fontSize: '1.05rem' }}>{sub.amount} {sub.currency}</Typography>
+                <Typography sx={{ fontWeight: 700, fontSize: '1.125rem' }}>{sub.amount} {sub.currency}</Typography>
               </Grid>
 
               <Grid item xs={12} sm={6}>
@@ -101,7 +100,7 @@ export default function SubscriptionDetails() {
               <Grid item xs={12} sm={6}>
                 <Typography variant="subtitle2" className="muted">Next Billing Date</Typography>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Typography sx={{ fontWeight: 600 }}>{formatDate(sub.nextBillingDate)}</Typography>
+                  <Typography sx={{ fontWeight: 700 }}>{formatDate(sub.nextBillingDate)}</Typography>
                   {(() => {
                     const now = new Date();
                     const nb = new Date(sub.nextBillingDate);
@@ -129,6 +128,7 @@ export default function SubscriptionDetails() {
               </Grid>
 
               <Grid item xs={12}>
+                <Divider sx={{ my: 1 }} />
                 <Typography variant="subtitle2" className="muted">Created At</Typography>
                 <Typography>{formatDate(sub.createdAt || sub.created)}</Typography>
               </Grid>
